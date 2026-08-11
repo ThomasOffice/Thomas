@@ -325,6 +325,25 @@ ignoreErrors = ["error-remote-getjson"]
       enable = true
       count = 5
 
+  # 顶层评论系统配置 (当文章 front matter 显式 comment = true 时使用此配置)
+  [params.comment]
+    enable = true
+    [params.comment.giscus]
+      enable = true
+      dataRepo = "ThomasOffice/Thomas"
+      dataRepoId = "R_kgDOJfy2pQ"
+      dataCategory = "Announcements"
+      dataCategoryId = "DIC_kwDOJfy2pc4DDHzG"
+      dataMapping = "pathname"
+      dataStrict = "0"
+      dataReactionsEnabled = "1"
+      dataEmitMetadata = "0"
+      dataInputPosition = "top"
+      lightTheme = "light"
+      darkTheme = "dark"
+      dataLang = "zh-CN"
+      dataLoading = "lazy"
+
   # TypeIt 配置
   [params.typeit]
     speed = 100
