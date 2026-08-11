@@ -300,14 +300,14 @@ ignoreErrors = ["error-remote-getjson"]
       [params.page.comment.giscus]
         enable = true
         dataRepo = "ThomasOffice/Thomas"
-        dataRepoId = "REPO_ID_PLACEHOLDER"
+        dataRepoId = "R_kgDOJfy2pQ"
         dataCategory = "Announcements"
-        dataCategoryId = "CATEGORY_ID_PLACEHOLDER"
+        dataCategoryId = "DIC_kwDOJfy2pc4DDHzG"
         dataMapping = "pathname"
         dataStrict = "0"
         dataReactionsEnabled = "1"
         dataEmitMetadata = "0"
-        dataInputPosition = "bottom"
+        dataInputPosition = "top"
         lightTheme = "light"
         darkTheme = "dark"
         dataLang = "zh-CN"
