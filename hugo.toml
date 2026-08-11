@@ -1,0 +1,350 @@
+# ---------------------------------------------------------------------------
+# Hugo 基础配置
+# ---------------------------------------------------------------------------
+baseURL = "https://thomasoffice.github.io/Thomas/"
+defaultContentLanguage = "zh-cn"
+title = "Thomas's Blog"
+theme = "DoIt"
+enableRobotsTXT = true
+enableGitInfo = true
+enableEmoji = true
+
+# 忽略部分构建错误
+ignoreErrors = ["error-remote-getjson"]
+
+# ---------------------------------------------------------------------------
+# 输出格式配置
+# ---------------------------------------------------------------------------
+[outputs]
+  home = ["HTML", "RSS", "JSON", "JsonFeed"]
+  page = ["HTML", "MarkDown"]
+  section = ["HTML", "RSS"]
+  taxonomy = ["HTML", "RSS"]
+
+[outputFormats]
+  [outputFormats.MarkDown]
+    mediaType = "text/plain"
+    isPlainText = true
+    isHTML = false
+  [outputFormats.JsonFeed]
+    mediaType = "application/feed+json"
+    isPlainText = true
+    notAlternative = true
+
+[mediaTypes]
+  [mediaTypes."text/plain"]
+    suffixes = ["md"]
+  [mediaTypes."application/feed+json"]
+    suffixes = ["feed"]
+
+# ---------------------------------------------------------------------------
+# 语言配置
+# ---------------------------------------------------------------------------
+[languages.zh-cn]
+  weight = 1
+  locale = "zh-CN"
+  label = "简体中文"
+  hasCJKLanguage = true
+  copyright = "This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License."
+
+# ---------------------------------------------------------------------------
+# 菜单配置
+# ---------------------------------------------------------------------------
+[[menu.main]]
+  identifier = "posts"
+  name = "所有文章"
+  url = "/posts/"
+  weight = 1
+[[menu.main]]
+  identifier = "tags"
+  name = "标签"
+  url = "/tags/"
+  weight = 2
+[[menu.main]]
+  identifier = "categories"
+  name = "分类"
+  url = "/categories/"
+  weight = 3
+[[menu.main]]
+  identifier = "about"
+  name = "关于"
+  url = "/about/"
+  weight = 4
+
+# ---------------------------------------------------------------------------
+# Markup 配置
+# ---------------------------------------------------------------------------
+[markup]
+  [markup.highlight]
+    codeFences = true
+    guessSyntax = true
+    lineNos = true
+    lineNumbersInTable = true
+    noClasses = false
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      definitionList = true
+      footnote = true
+      linkify = true
+      strikethrough = true
+      table = true
+      taskList = true
+      typographer = true
+    [markup.goldmark.renderer]
+      unsafe = true
+    [markup.goldmark.extensions.passthrough]
+      enable = true
+    [markup.goldmark.extensions.passthrough.delimiters]
+      block = [['\[', '\]'], ['$$', '$$']]
+      inline = [['\(', '\)']]
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 6
+
+# ---------------------------------------------------------------------------
+# 站点参数
+# ---------------------------------------------------------------------------
+[params]
+  description = "Thomas 的个人博客 - 记录技术与生活"
+  keywords = ["Thomas", "博客", "技术", "生活"]
+  version = "0.4.X"
+  defaultTheme = "auto"
+  gitRepo = "https://github.com/ThomasOffice/Thomas"
+  fingerprint = ""
+  dateFormat = "2006-01-02"
+  images = ["/images/avatar.webp"]
+  enablePWA = false
+  license = '<a rel="license external nofollow noopener noreferrer" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>'
+  bundle = false
+
+  # 应用图标配置
+  [params.app]
+    title = "Thomas's Blog"
+    noFavicon = false
+    svgFavicon = ""
+    iconColor = "#5bbad5"
+    tileColor = "#da532c"
+
+  # 搜索配置 (使用 fuse 本地搜索，无需外部服务)
+  [params.search]
+    enable = true
+    type = "fuse"
+    contentLength = 4000
+    placeholder = ""
+    maxResultLength = 10
+    snippetLength = 50
+    highlightTag = "em"
+    absoluteURL = false
+    [params.search.fuse]
+      isCaseSensitive = false
+      minMatchCharLength = 2
+      findAllMatches = false
+      location = 0
+      threshold = 0.1
+      distance = 100
+      ignoreLocation = true
+      useExtendedSearch = false
+      ignoreFieldNorm = false
+
+  # 主页信息设置
+  [params.home]
+    rss = 10
+    [params.home.profile]
+      enable = true
+      gravatarEmail = ""
+      avatarURL = "/images/avatar.webp"
+      avatarLinkURL = ""
+      title = ""
+      subtitle = "思考与记录"
+      typeit = true
+      social = true
+      disclaimer = ""
+    [params.home.posts]
+      enable = true
+      paginate = 7
+
+  # 主页社交信息设置
+  [params.social]
+    GitHub = "ThomasOffice"
+    Email = ""
+    RSS = true
+    Bilibili = ""
+    Weibo = ""
+    Zhihu = ""
+    Twitter = ""
+    Telegram = ""
+
+  [params.author]
+    name = "Thomas"
+    email = "ThomasOffice@users.noreply.github.com"
+    link = "https://github.com/ThomasOffice"
+    avatar = "/images/avatar.webp"
+
+  [params.image]
+    cacheRemote = true
+    optimise = true
+
+  # 页面头部导航栏配置
+  [params.header]
+    themeChangeMode = "switch"
+    [params.header.title]
+      logo = ""
+      name = "Thomas's Blog"
+      pre = ""
+      post = ""
+      typeit = false
+
+  # 页面底部信息配置
+  [params.footer]
+    enable = true
+    custom = ''
+    hugo = true
+    hostedOn = '<a title="GitHub Pages" href="https://docs.github.com/en/pages/" target="_blank" rel="noopener noreferrer">GitHub Pages</a>'
+    copyright = true
+    author = true
+    since = 2026
+    icp = ""
+    license = '<a rel="license external nofollow noopener noreferrer" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>'
+
+  # Section (所有文章) 页面配置
+  [params.section]
+    paginate = 20
+    dateFormat = "01-02"
+    rss = 10
+    [params.section.recentlyUpdated]
+      enable = true
+      rss = true
+      days = 30
+      maxCount = 10
+
+  # List (目录或标签) 页面配置
+  [params.list]
+    paginate = 20
+    dateFormat = "01-02"
+    rss = 10
+
+  # 文章页面配置
+  [params.page]
+    hiddenFromHomePage = false
+    hiddenFromSearch = false
+    twemoji = false
+    lightgallery = false
+    ruby = true
+    fraction = true
+    linkToMarkdown = true
+    linkToSource = "https://github.com/ThomasOffice/Thomas/blob/main/content/{path}"
+    linkToEdit = "https://github.com/ThomasOffice/Thomas/edit/main/content/{path}"
+    rssFullText = false
+    seriesNavigation = true
+    enableLastMod = true
+    enableWordCount = true
+    enableReadingTime = true
+
+    [params.page.instantpage]
+      enable = true
+
+    [params.page.outdatedArticleReminder]
+      enable = false
+      reminder = 90
+      warning = 180
+
+    # 目录配置
+    [params.page.toc]
+      enable = true
+      keepStatic = false
+      auto = true
+
+    # 代码配置
+    [params.page.code]
+      maxShownLines = 10
+      lineNos = true
+      wrap = false
+      header = true
+
+    # 表格配置
+    [params.page.table]
+      sort = true
+
+    [params.page.header]
+      [params.page.header.number]
+        enable = true
+        [params.page.header.number.format]
+          h2 = "{h2} {title}"
+          h3 = "{h2}.{h3} {title}"
+          h4 = "{h2}.{h3}.{h4} {title}"
+          h5 = "{h2}.{h3}.{h4}.{h5} {title}"
+          h6 = "{h2}.{h3}.{h4}.{h5}.{h6} {title}"
+
+    # KaTeX 数学公式配置
+    [params.page.math]
+      enable = false
+      copyTex = true
+      mhchem = true
+      mathjax = false
+
+    # 文章页面的分享设置
+    [params.page.share]
+      enable = true
+      Weibo = true
+      Weixin = ""
+      Twitter = true
+      Facebook = true
+      Telegram = true
+      HackerNews = true
+      Reddit = false
+      Linkedin = false
+
+    # 评论系统设置 - Giscus
+    [params.page.comment]
+      enable = true
+      [params.page.comment.giscus]
+        enable = true
+        dataRepo = "ThomasOffice/Thomas"
+        dataRepoId = "REPO_ID_PLACEHOLDER"
+        dataCategory = "Announcements"
+        dataCategoryId = "CATEGORY_ID_PLACEHOLDER"
+        dataMapping = "pathname"
+        dataStrict = "0"
+        dataReactionsEnabled = "1"
+        dataEmitMetadata = "0"
+        dataInputPosition = "bottom"
+        lightTheme = "light"
+        darkTheme = "dark"
+        dataLang = "zh-CN"
+        dataLoading = "lazy"
+
+    # 页面 SEO 配置
+    [params.page.seo]
+      images = []
+      [params.page.seo.publisher]
+        name = "Thomas"
+        logoUrl = "/images/avatar.webp"
+
+    # 相关文章推荐配置
+    [params.page.related]
+      enable = true
+      count = 5
+
+  # TypeIt 配置
+  [params.typeit]
+    speed = 100
+    cursorSpeed = 1000
+    cursorChar = "|"
+    duration = -1
+
+  # 网站 SEO 配置
+  [params.seo]
+    image = "/images/avatar.webp"
+    thumbnailUrl = "/images/avatar.webp"
+
+  # 网站分析配置
+  [params.analytics]
+    enable = false
+
+  # CDN 设置
+  [params.cdn]
+    data = ""
+
+  # 兼容性设置
+  [params.compatibility]
+    polyfill = false

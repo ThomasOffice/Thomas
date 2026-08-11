@@ -1,0 +1,21 @@
+# Hugo build output
+/public/
+/resources/_gen/
+
+# Hugo lock file
+/.hugo_build.lock
+
+# Node.js (for theme tooling)
+/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
