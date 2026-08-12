@@ -9,10 +9,13 @@
     <source src="{{ $musicDir }}tiankong.mp3" type="audio/mpeg">
 </audio>
 
-<!-- BGM 控制按钮（只播放，不暂停） -->
+<!-- BGM 控制按钮（播放/暂停切换） -->
 <div id="bgm-control" class="bgm-control" title="播放 BGM">
-    <svg class="bgm-icon" viewBox="0 0 24 24" width="20" height="20">
-        <path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+    <svg id="bgm-icon-play" class="bgm-icon" viewBox="0 0 24 24" width="20" height="20">
+        <path fill="currentColor" d="M8 5v14l11-7z"/>
+    </svg>
+    <svg id="bgm-icon-pause" class="bgm-icon" viewBox="0 0 24 24" width="20" height="20" style="display:none">
+        <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
     </svg>
 </div>
 
@@ -167,6 +170,8 @@
     var bgmDefault = document.getElementById('bgm-default');
     var bgmEaster = document.getElementById('bgm-easter');
     var bgmControl = document.getElementById('bgm-control');
+    var iconPlay = document.getElementById('bgm-icon-play');
+    var iconPause = document.getElementById('bgm-icon-pause');
     var canvas = document.getElementById('easter-canvas');
     var easterText = document.getElementById('easter-text');
     var overlay = null;
@@ -194,27 +199,32 @@
         } catch(e) { return null; }
     }
 
-    function clearState() {
-        try { sessionStorage.removeItem(STATE_KEY); } catch(e) {}
+    // ========== UI 更新 ==========
+    function showPlayingUI() {
+        iconPlay.style.display = 'none';
+        iconPause.style.display = 'block';
+        bgmControl.classList.add('playing');
+        bgmControl.title = '暂停 BGM';
+    }
+    function showPausedUI() {
+        iconPlay.style.display = 'block';
+        iconPause.style.display = 'none';
+        bgmControl.classList.remove('playing');
+        bgmControl.title = '播放 BGM';
     }
 
     // ========== 播放控制 ==========
-    function setPlayingUI() {
-        isPlaying = true;
-        bgmControl.classList.add('playing');
-        bgmControl.title = 'BGM 播放中';
-    }
-
     function playDefault(startTime) {
         if (startTime && startTime > 0) {
             try { bgmDefault.currentTime = startTime; } catch(e) {}
         }
         bgmDefault.play().then(function() {
-            setPlayingUI();
+            isPlaying = true;
             isEaster = false;
+            showPlayingUI();
             saveState('default', true);
-        }).catch(function(e) {
-            console.log('BGM 播放等待用户交互');
+        }).catch(function() {
+            showPausedUI();
         });
     }
 
@@ -223,39 +233,24 @@
             try { bgmEaster.currentTime = startTime; } catch(e) {}
         }
         bgmEaster.play().then(function() {
-            setPlayingUI();
+            isPlaying = true;
             isEaster = true;
+            showPlayingUI();
             saveState('easter', true);
-        }).catch(function(e) {
-            console.log('彩蛋 BGM 播放等待用户交互');
+        }).catch(function() {
+            showPausedUI();
         });
     }
 
-    // 控制按钮：只播放，不暂停
-    bgmControl.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (isPlaying) return;  // 已在播放则不做任何事
-        var state = loadState();
-        if (state && state.source === 'easter') {
-            playEaster(state.time);
-        } else if (state && state.source === 'default') {
-            playDefault(state.time);
-        } else {
-            playDefault(0);
-        }
-    });
+    function pauseAll() {
+        bgmDefault.pause();
+        bgmEaster.pause();
+        isPlaying = false;
+        showPausedUI();
+        saveState(isEaster ? 'easter' : 'default', false);
+    }
 
-    // 定期保存播放进度（用于跨页面恢复）
-    bgmDefault.addEventListener('timeupdate', function() {
-        if (isPlaying && !isEaster) saveState('default', true);
-    });
-    bgmEaster.addEventListener('timeupdate', function() {
-        if (isPlaying && isEaster) saveState('easter', true);
-    });
-
-    // ========== 自动播放与跨页面恢复 ==========
-    // 浏览器自动播放策略：首次交互后尝试恢复播放
-    function tryRestore() {
+    function resumePlayback() {
         if (isPlaying) return;
         var state = loadState();
         if (state && state.source === 'easter') {
@@ -266,13 +261,73 @@
         } else {
             playDefault(0);
         }
-        document.removeEventListener('click', tryRestore);
-        document.removeEventListener('keydown', tryRestore);
-        document.removeEventListener('touchstart', tryRestore);
     }
-    document.addEventListener('click', tryRestore);
-    document.addEventListener('keydown', tryRestore);
-    document.addEventListener('touchstart', tryRestore);
+
+    // 控制按钮：播放/暂停切换
+    bgmControl.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (isEaster) return;  // 彩蛋 BGM 期间不允许暂停
+        if (isPlaying) {
+            pauseAll();
+        } else {
+            resumePlayback();
+        }
+    });
+
+    // 定期保存播放进度
+    bgmDefault.addEventListener('timeupdate', function() {
+        if (isPlaying && !isEaster) saveState('default', true);
+    });
+    bgmEaster.addEventListener('timeupdate', function() {
+        if (isPlaying && isEaster) saveState('easter', true);
+    });
+
+    // ========== 立即自动播放 + 跨页面恢复 ==========
+    function startPlayback() {
+        var state = loadState();
+        if (state && state.source === 'easter' && state.playing) {
+            playEaster(state.time);
+            bindEasterEnded();
+        } else if (state && state.source === 'default' && state.playing) {
+            playDefault(state.time);
+        } else if (state && !state.playing) {
+            // 之前是暂停状态，保持暂停
+            showPausedUI();
+            if (state.source === 'easter') {
+                try { bgmEaster.currentTime = state.time; } catch(e) {}
+                isEaster = true;
+                bindEasterEnded();
+            } else {
+                try { bgmDefault.currentTime = state.time; } catch(e) {}
+            }
+        } else {
+            // 首次访问，立即播放
+            playDefault(0);
+        }
+    }
+
+    // 立即尝试播放（不等用户交互）
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPlayback);
+    } else {
+        startPlayback();
+    }
+
+    // 自动播放被阻止时的回退：首次交互后恢复
+    function fallbackRestore() {
+        if (!isPlaying) {
+            var state = loadState();
+            if (!state || state.playing) {
+                resumePlayback();
+            }
+        }
+        document.removeEventListener('click', fallbackRestore);
+        document.removeEventListener('keydown', fallbackRestore);
+        document.removeEventListener('touchstart', fallbackRestore);
+    }
+    document.addEventListener('click', fallbackRestore);
+    document.addEventListener('keydown', fallbackRestore);
+    document.addEventListener('touchstart', fallbackRestore);
 
     // 页面隐藏前保存状态
     document.addEventListener('visibilitychange', function() {
