@@ -4,9 +4,9 @@ date = 2026-08-11T17:30:00+08:00
 draft = false
 author = 'Thomas'
 categories = ['技术']
-tags = ['Hugo', 'GitHub Pages', 'Giscus', 'PowerShell', '排错']
-description = '记录从零搭建 Hugo + DoIt 主题博客的完整过程，包括网络代理、SSH 认证、Giscus 评论、TOML 配置等 7 个典型坑及解决方案。'
-keywords = ['Hugo 搭建', 'DoIt 主题', 'GitHub Pages', 'Giscus', '踩坑']
+tags = ['Hugo', 'GitHub Pages', 'Giscus', 'PowerShell', 'CSS', 'Web Audio', '排错']
+description = '记录从零搭建 Hugo + DoIt 主题博客的完整过程，包括网络代理、SSH 认证、Giscus 评论、TOML 配置、子路径部署、BGM 跨页持久化、彩蛋动效等 12 个典型坑及解决方案。'
+keywords = ['Hugo 搭建', 'DoIt 主题', 'GitHub Pages', 'Giscus', 'BGM', '彩蛋', '液态玻璃', '踩坑']
 toc = true
 autoCollapseToc = true
 comment = true
@@ -18,9 +18,9 @@ comment = true
 
 本文记录了我在 GitHub 空仓库上从零搭建 Hugo 个人博客的完整过程。
 
-不同于"顺利教程"，这是一份**真实的踩坑实录**——从网络连接到 SSH 认证，从主题配置到评论系统，几乎每一步都踩了坑。但正是这些坑，让我对 Hugo 生态、Git 认证机制、DoIt 主题内部逻辑有了远比"跟着文档抄一遍"深刻得多的理解。
+不同于"顺利教程"，这是一份**真实的踩坑实录**——从网络连接到 SSH 认证，从主题配置到评论系统，从子路径部署到 BGM 持久化，从彩蛋动效到液态玻璃文字，几乎每一步都踩了坑。但正是这些坑，让我对 Hugo 生态、Git 认证机制、DoIt 主题内部逻辑、CSS 视觉效果、Web Audio API 有了远比"跟着文档抄一遍"深刻得多的理解。
 
-如果你也在搭建博客，或者对静态站点的工程实践感兴趣，希望这份记录能帮你少走弯路。
+全文共记录 **12 个坑**，涵盖基建、部署、样式、交互四个阶段。如果你也在搭建博客，或者对静态站点的工程实践感兴趣，希望这份记录能帮你少走弯路。
 
 
 
@@ -33,6 +33,9 @@ comment = true
 | 部署 | GitHub Pages + Actions | 免费、自动、与 Git 工作流无缝集成 |
 | 评论 | Giscus | 基于 GitHub Discussions，无需数据库 |
 | 搜索 | Fuse.js | 纯本地索引，无需 Algolia 等外部服务 |
+| BGM | HTML5 Audio + Web Audio API | 跨页面持久化 + 频谱可视化 |
+| 彩蛋动效 | Canvas 2D + CSS 3D | 粒子系统 + 极光 + 液态玻璃文字 |
+| 管理工具 | PowerShell 7 | 交互式 CLI，新建/导入/发布一条龙 |
 
 
 
@@ -412,7 +415,268 @@ $content = Get-Content -LiteralPath $path -Raw -Encoding UTF8
 
 
 
-## 总结：七条经验法则
+## 坑八：草稿文章线上不显示
+
+### 现象
+
+用管理工具发布文章后，本地预览正常，但线上看不到新文章。GitHub Actions 构建成功，仓库里文件也在。
+
+### 排查过程
+
+对比本地构建和线上构建的差异：
+
+```powershell
+# 本地预览（能看到文章）
+hugo server -D    # -D = buildDrafts，包含草稿
+
+# 线上构建（看不到文章）
+hugo --minify     # 默认不含草稿
+```
+
+检查文章 front matter：
+
+```toml
++++
+draft = true    # 草稿状态！
++++
+```
+
+### 根因
+
+`draft = true` 的文章在 production 构建时会被跳过。本地 `hugo server -D` 的 `-D` 参数显式包含草稿，造成"本地能看线上看不到"的假象。
+
+### 解决方案
+
+发布前将 `draft = true` 改为 `draft = false`。并在管理工具中增加**草稿自动检测**：
+
+```powershell
+# 发布前扫描草稿文章
+Get-ChildItem -Path "content/posts" -Recurse -File -Filter "*.md" | ForEach-Object {
+    $raw = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+    if ($raw -match '(?m)^\s*draft\s*=\s*true\s*$') {
+        # 提示用户：是否自动改为 false
+    }
+}
+```
+
+### 经验
+
+- Hugo 的 `draft`、`expiryDate`、`publishDate` 都会影响线上可见性，排查"文章不显示"时第一时间查 front matter
+- 本地预览加 `-D` 是方便，但会掩盖草稿问题，发布前务必用 `hugo --gc`（不加 `-D`）验证
+
+
+
+## 坑九：子路径部署导致头像 404
+
+### 现象
+
+头像本地预览正常，线上无法显示。浏览器控制台报 404。
+
+### 排查过程
+
+```powershell
+# 头像在子路径下可访问
+https://thomasoffice.github.io/Thomas/images/avatar.jpg  # 200
+
+# 但 HTML 中引用的是根路径
+<img src="/images/avatar.jpg">  # 404
+```
+
+### 根因
+
+`hugo.toml` 中 `baseURL = "https://thomasoffice.github.io/Thomas/"`（子路径 `/Thomas/`），但 `avatarURL = "/images/avatar.jpg"` 以 `/` 开头——Hugo 把以 `/` 开头的路径视为**站点根绝对路径**，不会自动拼接 baseURL 子路径前缀。
+
+### 解决方案
+
+所有静态资源引用都加上子路径前缀：
+
+```toml
+# 错误
+avatarURL = "/images/avatar.jpg"
+
+# 正确
+avatarURL = "/Thomas/images/avatar.jpg"
+```
+
+需要修改的位置包括：`params.images`、`params.home.profile.avatarURL`、`params.author.avatar`、`params.page.seo.publisher.logoUrl`、`params.seo.image`、`params.seo.thumbnailUrl`。
+
+### 经验
+
+- Hugo 的 URL 处理有三套规则：`/` 开头（站点根）、`//` 开头（协议相对）、`http` 开头（绝对 URL）。子路径部署时 `/` 开头的路径**不会**自动加前缀
+- 子路径部署（非 `<user>.github.io` 根仓库）所有静态资源路径都要手动加前缀，或用 `relURL`/`relLangURL` 函数
+
+
+
+## 坑十：归档页和关于页标题右对齐
+
+### 现象
+
+"所有文章"、"分类"、"标签"、"关于"页面的标题被右对齐，但文章页标题正常左对齐。
+
+### 排查过程
+
+查看 DoIt 主题样式源码：
+
+```scss
+// _page/_archive.scss
+.archive .single-title {
+  text-align: right;    // 归档页右对齐！
+}
+
+// _page/_special.scss
+.special .single-title,
+.special .single-subtitle {
+  text-align: right;    // 关于页（special 类型）也右对齐！
+}
+```
+
+主题设计者刻意把归档页和 special 页面标题右对齐作为"风格"，但不符合中文阅读习惯。
+
+### 解决方案
+
+创建 `assets/css/_custom.scss` 覆盖：
+
+```scss
+// 修复归档页标题右对齐
+.archive .single-title {
+  text-align: left;
+}
+
+// 修复 special 页面标题右对齐（关于页等）
+.special .single-title,
+.special .single-subtitle {
+  text-align: left;
+}
+```
+
+DoIt 主题的 `_custom.scss` 会在主样式之后加载，天然具有覆盖优先级。
+
+### 经验
+
+- DoIt 主题支持 `assets/css/_custom.scss` 和 `_override.scss` 两个自定义入口，前者加在最后（覆盖样式），前者加在最前（覆盖变量）
+- 查样式问题先读主题 SCSS 源码，比浏览器 F12 逆向更高效
+
+
+
+## 坑十一：BGM 跨页面持久化
+
+### 现象
+
+BGM 在首页播放正常，但点击导航跳转到文章页后 BGM 中断（静态站点每个页面都是独立的 HTML）。
+
+### 排查过程
+
+静态站点的本质：每个页面都是独立的 HTML 文档，页面跳转 = 整个 DOM 重建，`<audio>` 元素随之销毁。没有 SPA 的路由保活机制。
+
+### 解决方案
+
+用 `sessionStorage` 在页面间传递播放状态：
+
+```javascript
+// 保存状态
+function saveState(source, playing) {
+    var audio = source === 'easter' ? bgmEaster : bgmDefault;
+    sessionStorage.setItem('thomas_bgm_state', JSON.stringify({
+        source: source,        // 'default' 或 'easter'
+        playing: playing,      // 是否正在播放
+        time: audio.currentTime || 0   // 播放进度
+    }));
+}
+
+// 恢复播放
+function startPlayback() {
+    var state = loadState();
+    if (state && state.playing) {
+        // 从断点恢复
+        bgmDefault.currentTime = state.time;
+        bgmDefault.play();
+    }
+}
+```
+
+关键点：
+- `timeupdate` 事件定期保存进度
+- `beforeunload` + `visibilitychange` 确保跳转前保存
+- 新页面 `DOMContentLoaded` 立即恢复
+- 浏览器自动播放策略：首次用户交互后才能 `play()`，用 `click`/`keydown`/`touchstart` 监听作为回退
+
+### 经验
+
+- 静态站点没有 SPA 的组件保活，跨页面状态只能靠 `sessionStorage`（同步、页面级）或 `localStorage`（持久）
+- `sessionStorage` 比 `localStorage` 更合适：BGM 状态不需要跨会话保留，关标签页即清除
+- 浏览器自动播放策略（Autoplay Policy）是 2018 年后的硬性限制，`audio.play()` 必须在用户交互回调中调用
+
+
+
+## 坑十二：液态玻璃文字 + 逐字动画冲突
+
+### 现象
+
+彩蛋文字改为英文后全部堆在一起，且没有逐字浮现效果。
+
+### 排查过程
+
+两个问题叠加：
+
+**问题 A：文字堆叠**
+
+原 CSS 把 `background-clip: text` 放在 `.egg-line` 父容器上：
+
+```css
+.egg-line {
+    background: linear-gradient(...);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.egg-char {
+    display: inline-block;  /* 每个字符是独立块 */
+}
+```
+
+父容器裁切渐变，但子元素 `inline-block` 各自独立，渐变背景无法正确传递到每个字符，导致文字重叠。
+
+**问题 B：逐字动画不触发**
+
+```javascript
+span.style.animationDelay = (charIndex * 0.05) + 's';
+// 后面添加 .in class
+chars[i].classList.add('in');
+```
+
+CSS `.egg-char.in { animation: egg-char-in 0.8s ... forwards; }` 的 `animation` 简写**覆盖**了 inline `animationDelay`，所有字符同时动画。
+
+### 解决方案
+
+**修复 A**：渐变裁切移到每个字符上：
+
+```css
+.egg-char {
+    background: linear-gradient(135deg, ...);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+```
+
+**修复 B**：用 `setTimeout` 逐个添加 `.in` class，不用 CSS animation-delay：
+
+```javascript
+allChars.forEach(function(ch, idx) {
+    setTimeout(function() {
+        ch.classList.add('in');
+    }, idx * 60);   // 每 60ms 触发一个字符
+});
+```
+
+### 经验
+
+- `background-clip: text` 的渐变作用域是**当前元素**，不会穿透到子元素。父容器裁切 + 子元素 `inline-block` = 灾难
+- CSS `animation` 简写会重置 `animation-delay`，要么用 `animation-delay` 单独属性，要么用 JS 控制时序
+- 英文按**单词**分组（`white-space: nowrap`）防止换行时单词断裂，比按字符分组更美观
+
+
+
+## 总结：十二条经验法则
 
 | 坑 | 经验 |
 |----|------|
@@ -423,6 +687,11 @@ $content = Get-Content -LiteralPath $path -Raw -Encoding UTF8
 | TOML 语法 | 带点号的 key 必须用引号包裹并写全父表前缀：`[mediaTypes."text/plain"]` |
 | 主题隐藏逻辑 | 读模板源码是终极排查手段；配置层次 `Site.Params` vs `Site.Params.page` 可能不同 |
 | PowerShell 编码 | 中文场景下控制台输入、输出、文件读写三处编码都要显式设为 UTF-8 |
+| 草稿不显示 | `draft = true` 在 production 构建会跳过；发布前用 `hugo --gc`（不加 `-D`）验证 |
+| 子路径资源 404 | `/` 开头的路径不会自动加 baseURL 子路径前缀，需手动写 `/Thomas/...` |
+| 标题右对齐 | DoIt 归档页/special 页标题刻意右对齐，用 `_custom.scss` 覆盖 |
+| BGM 跨页面 | 静态站点无 SPA 保活，用 `sessionStorage` 传递播放状态 + 断点恢复 |
+| 液态玻璃动画 | `background-clip:text` 作用域是当前元素不穿透子元素；`animation` 简写覆盖 `delay` |
 
 
 
@@ -431,8 +700,9 @@ $content = Get-Content -LiteralPath $path -Raw -Encoding UTF8
 踩完这些坑后，我把日常操作封装成了一个交互式管理工具 `blog.ps1`，支持：
 
 - 新建文章（自动填充 front matter）
-- 导入本地 Markdown（自动转换格式、补全字段、处理图片）
+- 导入本地 Markdown（自动转换格式、补全字段、处理图片为 Page Bundle）
 - 本地预览、构建测试、一键发布
+- 草稿自动检测（发布前提示改为 `draft = false`）
 - 查看站点状态
 
 工具本身也踩了编码坑——但那又是另一个故事了。
@@ -446,11 +716,12 @@ $content = Get-Content -LiteralPath $path -Raw -Encoding UTF8
 - SSH 认证失败让我搞清了 Deploy Key 和个人 Key 的区别
 - 评论不显示让我学会了读 Hugo 模板源码
 - 编码乱码让我理解了 PowerShell 的编码链路
+- 子路径 404 让我搞懂了 Hugo 的 URL 拼接规则
+- BGM 跨页面中断让我掌握了静态站点的状态持久化方案
+- 液态玻璃文字堆叠让我深入理解了 `background-clip: text` 的作用域
 
-这些知识比博客本身更有价值。博客是产物，排错是修行。
+从最初的空仓库到带 BGM、彩蛋动效、液态玻璃文字的完整博客，12 个坑串起了 Hugo 生态、Git 认证、CSS 视觉、Web Audio 四个领域的实践。这些知识比博客本身更有价值。博客是产物，排错是修行。
 
 ---
-
-
 
 *本文涉及的完整项目配置见 [GitHub 仓库](https://github.com/ThomasOffice/Thomas)，项目说明见 [README](https://github.com/ThomasOffice/Thomas#readme)。*
