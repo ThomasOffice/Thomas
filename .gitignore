@@ -19,3 +19,6 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# Source avatar (copied to static/images/)
+/17459659616963758966.JPG
