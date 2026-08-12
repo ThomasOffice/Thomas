@@ -7,3 +7,9 @@
 .archive .single-title {
   text-align: left;
 }
+
+// 修复 special 页面标题右对齐问题（关于页等）
+.special .single-title,
+.special .single-subtitle {
+  text-align: left;
+}

@@ -112,7 +112,7 @@ ignoreErrors = ["error-remote-getjson"]
   gitRepo = "https://github.com/ThomasOffice/Thomas"
   fingerprint = ""
   dateFormat = "2006-01-02"
-  images = ["/images/avatar.jpg"]
+  images = ["/Thomas/images/avatar.jpg"]
   enablePWA = false
   license = '<a rel="license external nofollow noopener noreferrer" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>'
   bundle = false
@@ -152,7 +152,7 @@ ignoreErrors = ["error-remote-getjson"]
     [params.home.profile]
       enable = true
       gravatarEmail = ""
-      avatarURL = "/images/avatar.jpg"
+      avatarURL = "/Thomas/images/avatar.jpg"
       avatarLinkURL = ""
       title = ""
       subtitle = "思考与记录"
@@ -178,7 +178,7 @@ ignoreErrors = ["error-remote-getjson"]
     name = "Thomas"
     email = "ThomasOffice@users.noreply.github.com"
     link = "https://github.com/ThomasOffice"
-    avatar = "/images/avatar.jpg"
+    avatar = "/Thomas/images/avatar.jpg"
 
   [params.image]
     cacheRemote = true
@@ -318,7 +318,7 @@ ignoreErrors = ["error-remote-getjson"]
       images = []
       [params.page.seo.publisher]
         name = "Thomas"
-        logoUrl = "/images/avatar.jpg"
+        logoUrl = "/Thomas/images/avatar.jpg"
 
     # 相关文章推荐配置
     [params.page.related]
@@ -353,8 +353,8 @@ ignoreErrors = ["error-remote-getjson"]
 
   # 网站 SEO 配置
   [params.seo]
-    image = "/images/avatar.jpg"
-    thumbnailUrl = "/images/avatar.jpg"
+    image = "/Thomas/images/avatar.jpg"
+    thumbnailUrl = "/Thomas/images/avatar.jpg"
 
   # 网站分析配置
   [params.analytics]
