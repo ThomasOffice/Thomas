@@ -426,10 +426,54 @@ function Publish-Site {
         return
     }
 
+    # 扫描草稿文章（draft = true）
+    $draftPosts = @()
+    Get-ChildItem -Path "content/posts" -Recurse -File -Filter "*.md" | ForEach-Object {
+        $raw = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+        if ($raw -match '(?m)^\s*draft\s*=\s*true\s*$') {
+            $draftPosts += [PSCustomObject]@{ Path = $_.FullName.Substring($Root.Length + 1); Name = $_.Name }
+        }
+    }
+
     Write-Host ""
     Write-Host "待提交的改动:" -ForegroundColor Cyan
     git status --short
     Write-Host ""
+
+    # 草稿警告与处理
+    if ($draftPosts.Count -gt 0) {
+        Write-Host "========================================" -ForegroundColor Red
+        Write-Host "  警告：发现 $($draftPosts.Count) 篇草稿文章" -ForegroundColor Red
+        Write-Host "  (draft = true，线上不会显示)" -ForegroundColor Red
+        Write-Host "========================================" -ForegroundColor Red
+        foreach ($p in $draftPosts) {
+            Write-Host "  - $($p.Path)" -ForegroundColor Yellow
+        }
+        Write-Host ""
+        Write-Host "  [1] 全部发布 (自动改为 draft = false)" -ForegroundColor Green
+        Write-Host "  [2] 保持草稿 (仅提交，不发布)" -ForegroundColor Yellow
+        Write-Host "  [3] 取消发布" -ForegroundColor DarkGray
+        $draftChoice = Read-Host "请选择 [1/2/3，回车默认 1]"
+        if ($draftChoice.Trim() -eq "3" -or $draftChoice.Trim() -eq "") {
+            # 回车默认 1，只有显式输入 3 才取消
+        }
+        if ($draftChoice.Trim() -eq "3") {
+            Write-Host "已取消" -ForegroundColor Yellow
+            Start-Sleep -Seconds 1
+            return
+        }
+        if ($draftChoice.Trim() -ne "2") {
+            # 默认和 1：自动改为 draft = false
+            foreach ($p in $draftPosts) {
+                $full = Join-Path $Root $p.Path
+                $raw = Get-Content -LiteralPath $full -Raw -Encoding UTF8
+                $raw = $raw -replace '(?m)^(\s*draft\s*=\s*)true(\s*)$', '${1}false${2}'
+                [System.IO.File]::WriteAllText($full, $raw, [System.Text.UTF8Encoding]::new($false))
+                Write-Host "  已发布: $($p.Name)" -ForegroundColor Green
+            }
+            Write-Host ""
+        }
+    }
 
     $defaultMsg = "publish: $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
     $msg = Read-Host "请输入提交信息 (回车用默认: $defaultMsg)"
