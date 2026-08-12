@@ -19,11 +19,29 @@
     </svg>
 </div>
 
-<!-- 彩蛋 Canvas -->
+<!-- 彩蛋：深空遮罩层 -->
+<div id="easter-overlay" class="easter-overlay"></div>
+
+<!-- 彩蛋：极光流动层 -->
+<div id="easter-aurora" class="easter-aurora">
+    <div class="aurora-band aurora-band-1"></div>
+    <div class="aurora-band aurora-band-2"></div>
+    <div class="aurora-band aurora-band-3"></div>
+</div>
+
+<!-- 彩蛋：粒子系统 Canvas（星空 + 流星 + 烟花） -->
 <canvas id="easter-canvas" class="easter-canvas"></canvas>
 
-<!-- 彩蛋文字覆盖层 -->
-<div id="easter-text" class="easter-text"></div>
+<!-- 彩蛋：音频可视化 Canvas（底部波形） -->
+<canvas id="easter-visualizer" class="easter-visualizer"></canvas>
+
+<!-- 彩蛋：3D 文字层 -->
+<div id="easter-text" class="easter-text">
+    <div class="egg-title-wrap">
+        <div class="egg-line"></div>
+    </div>
+    <div class="egg-sub"></div>
+</div>
 
 <style>
 /* BGM 控制按钮 */
@@ -61,8 +79,29 @@
     pointer-events: none;
 }
 
-/* 彩蛋 Canvas */
-.easter-canvas {
+/* 彩蛋：深空遮罩层 */
+.easter-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 997;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at 50% 40%, #0a0e27 0%, #050714 50%, #000000 100%);
+    transition: opacity 1.2s ease-in;
+}
+.easter-overlay.active {
+    opacity: 1;
+}
+.easter-overlay.fading {
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
+}
+
+/* 彩蛋：极光流动层 */
+.easter-aurora {
     position: fixed;
     top: 0;
     left: 0;
@@ -70,55 +109,152 @@
     height: 100%;
     z-index: 998;
     pointer-events: none;
+    opacity: 0;
+    overflow: hidden;
+    transition: opacity 2s ease-in;
+}
+.easter-aurora.active {
+    opacity: 1;
+}
+.aurora-band {
+    position: absolute;
+    width: 200%;
+    height: 60%;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.35;
+    mix-blend-mode: screen;
+}
+.aurora-band-1 {
+    top: 10%;
+    left: -50%;
+    background: linear-gradient(90deg, transparent, #667eea, #764ba2, #f093fb, transparent);
+    animation: aurora-flow-1 12s ease-in-out infinite;
+}
+.aurora-band-2 {
+    top: 30%;
+    left: -50%;
+    background: linear-gradient(90deg, transparent, #00d2d3, #48dbfb, #0abde3, transparent);
+    animation: aurora-flow-2 15s ease-in-out infinite;
+}
+.aurora-band-3 {
+    top: 50%;
+    left: -50%;
+    background: linear-gradient(90deg, transparent, #ff9ff3, #f368e0, #ee5253, transparent);
+    animation: aurora-flow-3 18s ease-in-out infinite;
+}
+@keyframes aurora-flow-1 {
+    0%, 100% { transform: translateX(0) translateY(0) rotate(-8deg) scale(1); }
+    50% { transform: translateX(25%) translateY(5%) rotate(-4deg) scale(1.2); }
+}
+@keyframes aurora-flow-2 {
+    0%, 100% { transform: translateX(25%) translateY(0) rotate(6deg) scale(1.1); }
+    50% { transform: translateX(0) translateY(-5%) rotate(10deg) scale(0.9); }
+}
+@keyframes aurora-flow-3 {
+    0%, 100% { transform: translateX(10%) translateY(0) rotate(-12deg) scale(0.95); }
+    50% { transform: translateX(35%) translateY(8%) rotate(-6deg) scale(1.15); }
+}
+
+/* 彩蛋：粒子 Canvas */
+.easter-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    pointer-events: none;
     display: none;
 }
 .easter-canvas.active {
     display: block;
 }
 
-/* 彩蛋文字 */
+/* 彩蛋：音频可视化 Canvas */
+.easter-visualizer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    z-index: 1000;
+    pointer-events: none;
+    display: none;
+}
+.easter-visualizer.active {
+    display: block;
+}
+
+/* 彩蛋：3D 文字层 */
 .easter-text {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1000;
+    z-index: 1001;
     pointer-events: none;
-    display: none;
+    opacity: 0;
     text-align: center;
+    perspective: 800px;
 }
 .easter-text.active {
-    display: block;
-    animation: easter-text-fade 5s ease-out forwards;
+    opacity: 1;
+    transition: opacity 1s ease-in;
 }
-.easter-text .egg-line {
-    font-size: 2.5rem;
-    font-weight: bold;
-    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea);
+.easter-text.fading {
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
+}
+.egg-title-wrap {
+    transform-style: preserve-3d;
+}
+.egg-line {
+    font-size: clamp(2rem, 7vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe, #667eea);
     background-size: 300% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: easter-gradient 3s linear infinite;
-    text-shadow: 0 0 30px rgba(118, 75, 162, 0.5);
-    margin: 0.5rem 0;
-    letter-spacing: 0.1em;
+    animation: egg-gradient 4s linear infinite;
+    filter: drop-shadow(0 0 20px rgba(118, 75, 162, 0.6)) drop-shadow(0 0 40px rgba(79, 172, 254, 0.3));
 }
-.easter-text .egg-sub {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    margin-top: 1rem;
+.egg-line .egg-char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(40px) scale(0.3) rotateY(90deg);
+    animation: egg-char-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-@keyframes easter-gradient {
+.egg-sub {
+    font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px rgba(102, 126, 234, 0.5);
+    margin-top: 1.5rem;
+    letter-spacing: 0.3em;
+    opacity: 0;
+    animation: egg-sub-in 1s ease-out 2s forwards;
+}
+@keyframes egg-gradient {
     0% { background-position: 0% 50%; }
     100% { background-position: 300% 50%; }
 }
-@keyframes easter-text-fade {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+@keyframes egg-char-in {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateY(0);
+    }
+}
+@keyframes egg-sub-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 0.85;
+        transform: translateY(0);
+    }
 }
 
 /* 副标题点击提示 */
@@ -138,29 +274,6 @@
     0%, 100% { text-shadow: 0 0 10px rgba(102, 126, 234, 0.5); }
     50% { text-shadow: 0 0 30px rgba(240, 147, 251, 0.8); }
 }
-
-/* 全屏遮罩渐变 */
-.easter-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 997;
-    pointer-events: none;
-    display: none;
-    background: radial-gradient(ellipse at center, transparent 0%, transparent 30%, rgba(0,0,0,0.3) 100%);
-    animation: overlay-fade 5s ease-out forwards;
-}
-.easter-overlay.active {
-    display: block;
-}
-@keyframes overlay-fade {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
-}
 </style>
 
 <script>
@@ -173,8 +286,10 @@
     var iconPlay = document.getElementById('bgm-icon-play');
     var iconPause = document.getElementById('bgm-icon-pause');
     var canvas = document.getElementById('easter-canvas');
+    var visualizer = document.getElementById('easter-visualizer');
+    var easterOverlay = document.getElementById('easter-overlay');
+    var aurora = document.getElementById('easter-aurora');
     var easterText = document.getElementById('easter-text');
-    var overlay = null;
     var isPlaying = false;
     var isEaster = false;
     var easterTriggered = false;
@@ -369,102 +484,176 @@
         }, interval);
     }
 
-    // ========== 彩蛋：烟花粒子系统 ==========
+    // ========== 彩蛋：高性能粒子系统 ==========
     var ctx = canvas.getContext('2d');
+    var vctx = visualizer.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var particles = [];
     var stars = [];
     var meteors = [];
     var animId = null;
+    var audioCtx = null;
+    var analyser = null;
+    var freqData = null;
+    var mouseX = 0.5, mouseY = 0.5;
+    var parallaxX = 0, parallaxY = 0;
+    var eggStartTime = 0;
 
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        var w = window.innerWidth, h = window.innerHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var vw = window.innerWidth, vh = 120;
+        visualizer.width = vw * dpr;
+        visualizer.height = vh * dpr;
+        visualizer.style.width = vw + 'px';
+        visualizer.style.height = vh + 'px';
+        vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    function Particle(x, y, color, angle, speed) {
-        this.x = x;
-        this.y = y;
+    // 鼠标视差
+    window.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX / window.innerWidth;
+        mouseY = e.clientY / window.innerHeight;
+    });
+
+    // 音频上下文初始化
+    function initAudio() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.8;
+            freqData = new Uint8Array(analyser.frequencyBinCount);
+            var source = audioCtx.createMediaElementSource(bgmEaster);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        } catch(e) { audioCtx = null; }
+    }
+
+    // 粒子类（带拖尾）
+    function Particle(x, y, color, angle, speed, opts) {
+        opts = opts || {};
+        this.x = x; this.y = y;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.color = color;
         this.life = 1;
-        this.decay = 0.008 + Math.random() * 0.012;
-        this.size = 2 + Math.random() * 2;
-        this.gravity = 0.04;
+        this.decay = opts.decay || (0.008 + Math.random() * 0.012);
+        this.size = opts.size || (2 + Math.random() * 2.5);
+        this.gravity = opts.gravity != null ? opts.gravity : 0.04;
+        this.drag = opts.drag || 0.99;
+        this.trail = [];
+        this.trailLen = opts.trailLen || 5;
+        this.glow = opts.glow != null ? opts.glow : 12;
     }
     Particle.prototype.update = function() {
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > this.trailLen) this.trail.shift();
         this.x += this.vx;
         this.y += this.vy;
         this.vy += this.gravity;
-        this.vx *= 0.99;
+        this.vx *= this.drag;
+        this.vy *= this.drag;
         this.life -= this.decay;
     };
     Particle.prototype.draw = function() {
+        // 拖尾
+        if (this.trail.length > 1) {
+            ctx.save();
+            ctx.globalAlpha = this.life * 0.4;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = this.size * 0.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for (var t = 1; t < this.trail.length; t++) {
+                ctx.lineTo(this.trail[t].x, this.trail[t].y);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        // 主体
         ctx.save();
         ctx.globalAlpha = this.life;
         ctx.fillStyle = this.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = this.glow;
         ctx.shadowColor = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, Math.max(0.1, this.size * this.life), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     };
 
+    // 星星类（带视差）
     function Star() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 1.5 + 0.5;
-        this.opacity = Math.random();
-        this.twinkleSpeed = 0.01 + Math.random() * 0.02;
-        this.twinkleDir = 1;
+        this.x = Math.random() * window.innerWidth;
+        this.y = Math.random() * window.innerHeight;
+        this.depth = Math.random() * 0.8 + 0.2;  // 0.2-1.0 深度
+        this.size = Math.random() * 1.5 + 0.3;
+        this.baseOpacity = Math.random() * 0.5 + 0.3;
+        this.opacity = this.baseOpacity;
+        this.twinkleSpeed = 0.01 + Math.random() * 0.025;
+        this.twinklePhase = Math.random() * Math.PI * 2;
     }
     Star.prototype.update = function() {
-        this.opacity += this.twinkleSpeed * this.twinkleDir;
-        if (this.opacity > 1) { this.opacity = 1; this.twinkleDir = -1; }
-        if (this.opacity < 0.2) { this.opacity = 0.2; this.twinkleDir = 1; }
+        this.twinklePhase += this.twinkleSpeed;
+        this.opacity = this.baseOpacity + Math.sin(this.twinklePhase) * 0.3;
     };
     Star.prototype.draw = function() {
+        var px = this.x + parallaxX * this.depth * 30;
+        var py = this.y + parallaxY * this.depth * 30;
         ctx.save();
-        ctx.globalAlpha = this.opacity;
+        ctx.globalAlpha = Math.max(0.1, this.opacity);
         ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = 4 + this.depth * 4;
         ctx.shadowColor = '#fff';
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(px, py, this.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     };
 
+    // 流星类
     function Meteor() {
-        this.x = Math.random() * canvas.width;
-        this.y = -20;
-        this.length = 80 + Math.random() * 120;
-        this.speed = 8 + Math.random() * 8;
-        this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.3;
-        this.opacity = 0.6 + Math.random() * 0.4;
+        this.reset();
+        this.y = Math.random() * window.innerHeight * 0.5;
     }
+    Meteor.prototype.reset = function() {
+        this.x = Math.random() * window.innerWidth * 0.8;
+        this.y = -20;
+        this.length = 80 + Math.random() * 140;
+        this.speed = 6 + Math.random() * 10;
+        this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.4;
+        this.opacity = 0.5 + Math.random() * 0.5;
+        this.color = ['#fff', '#a8e6ff', '#ffd6e0'][Math.floor(Math.random() * 3)];
+    };
     Meteor.prototype.update = function() {
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
-        if (this.y > canvas.height + 50 || this.x > canvas.width + 50) {
-            this.x = Math.random() * canvas.width * 0.7;
-            this.y = -20;
+        if (this.y > window.innerHeight + 50 || this.x > window.innerWidth + 50) {
+            this.reset();
         }
     };
     Meteor.prototype.draw = function() {
         var tailX = this.x - Math.cos(this.angle) * this.length;
         var tailY = this.y - Math.sin(this.angle) * this.length;
-        var gradient = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
-        gradient.addColorStop(0, 'rgba(255,255,255,' + this.opacity + ')');
-        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        var grad = ctx.createLinearGradient(this.x, this.y, tailX, tailY);
+        grad.addColorStop(0, this.color);
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.save();
-        ctx.strokeStyle = gradient;
+        ctx.globalAlpha = this.opacity;
+        ctx.strokeStyle = grad;
         ctx.lineWidth = 2;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         ctx.lineTo(tailX, tailY);
@@ -472,50 +661,144 @@
         ctx.restore();
     };
 
-    function createFirework(x, y) {
-        var colors = [
-            '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1',
-            '#ff9ff3', '#5f27cd', '#00d2d3', '#ff9f43',
-            '#ee5253', '#341f97', '#f368e0', '#ff6348'
-        ];
-        var color = colors[Math.floor(Math.random() * colors.length)];
-        var count = 60 + Math.floor(Math.random() * 40);
+    // 核爆式烟花：多层绽放
+    var fireworkColors = [
+        '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1', '#ff9ff3',
+        '#5f27cd', '#00d2d3', '#ff9f43', '#ee5253', '#341f97',
+        '#f368e0', '#ff6348', '#4facfe', '#00f2fe', '#fa709a'
+    ];
+
+    function createFirework(x, y, opts) {
+        opts = opts || {};
+        var color = opts.color || fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+        var count = opts.count || (80 + Math.floor(Math.random() * 50));
+        var baseSpeed = opts.speed || (3 + Math.random() * 4);
         for (var i = 0; i < count; i++) {
-            var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.1;
-            var speed = 2 + Math.random() * 5;
-            particles.push(new Particle(x, y, color, angle, speed));
+            var angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.15;
+            var speed = baseSpeed * (0.5 + Math.random() * 0.8);
+            particles.push(new Particle(x, y, color, angle, speed, {
+                trailLen: 6 + Math.floor(Math.random() * 4),
+                glow: 14,
+                decay: 0.006 + Math.random() * 0.01
+            }));
+        }
+        // 中心闪光
+        for (var j = 0; j < 20; j++) {
+            particles.push(new Particle(x, y, '#fff', Math.random() * Math.PI * 2, Math.random() * 1.5, {
+                size: 3 + Math.random() * 2,
+                glow: 20,
+                decay: 0.03,
+                gravity: 0
+            }));
+        }
+    }
+
+    // 汇聚粒子：从四周向中心汇聚
+    function createConverge(cx, cy) {
+        var count = 60;
+        for (var i = 0; i < count; i++) {
+            var angle = Math.random() * Math.PI * 2;
+            var dist = 300 + Math.random() * 400;
+            var sx = cx + Math.cos(angle) * dist;
+            var sy = cy + Math.sin(angle) * dist;
+            var dx = cx - sx, dy = cy - sy;
+            var dlen = Math.sqrt(dx * dx + dy * dy);
+            var speed = dlen / 30;
+            particles.push(new Particle(sx, sy, '#fff', Math.atan2(dy, dx), speed, {
+                trailLen: 8,
+                glow: 10,
+                decay: 0.02,
+                gravity: 0,
+                drag: 1
+            }));
         }
     }
 
     function initStars() {
         stars = [];
-        for (var i = 0; i < 120; i++) stars.push(new Star());
+        for (var i = 0; i < 150; i++) stars.push(new Star());
     }
-
     function initMeteors() {
         meteors = [];
-        for (var i = 0; i < 6; i++) {
+        for (var i = 0; i < 8; i++) {
             var m = new Meteor();
-            m.y = Math.random() * canvas.height * 0.5;
+            m.y = Math.random() * window.innerHeight * 0.5;
             meteors.push(m);
         }
     }
 
-    var fireworkTimer = 0;
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (var i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(); }
-        for (var j = 0; j < meteors.length; j++) { meteors[j].update(); meteors[j].draw(); }
-        fireworkTimer++;
-        if (fireworkTimer > 25) {
-            fireworkTimer = 0;
-            createFirework(canvas.width * (0.2 + Math.random() * 0.6), canvas.height * (0.15 + Math.random() * 0.4));
+    // 音频可视化绘制
+    function drawVisualizer() {
+        if (!analyser || !freqData) return;
+        analyser.getByteFrequencyData(freqData);
+        var vw = window.innerWidth, vh = 120;
+        vctx.clearRect(0, 0, vw, vh);
+        var bars = 64;
+        var barWidth = vw / bars;
+        var step = Math.floor(freqData.length / bars);
+        for (var i = 0; i < bars; i++) {
+            var v = freqData[i * step] / 255;
+            var bh = v * vh * 0.8;
+            var hue = 200 + i * 3;
+            var grad = vctx.createLinearGradient(0, vh, 0, vh - bh);
+            grad.addColorStop(0, 'hsla(' + hue + ', 80%, 50%, 0.3)');
+            grad.addColorStop(1, 'hsla(' + (hue + 60) + ', 90%, 70%, 0.9)');
+            vctx.fillStyle = grad;
+            vctx.fillRect(i * barWidth + 1, vh - bh, barWidth - 2, bh);
         }
+    }
+
+    // 动画主循环
+    var fireworkTimer = 0;
+    var bassEnergy = 0;
+
+    function animate() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        // 视差平滑插值
+        parallaxX += ((mouseX - 0.5) - parallaxX) * 0.05;
+        parallaxY += ((mouseY - 0.5) - parallaxY) * 0.05;
+
+        // 星星
+        for (var i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(); }
+
+        // 流星
+        for (var j = 0; j < meteors.length; j++) { meteors[j].update(); meteors[j].draw(); }
+
+        // 音频驱动：获取低频能量
+        if (analyser && freqData) {
+            analyser.getByteFrequencyData(freqData);
+            var bass = 0;
+            for (var b = 0; b < 8; b++) bass += freqData[b];
+            bassEnergy = bass / (8 * 255);
+        }
+
+        // 定时烟花（音频低频触发额外烟花）
+        fireworkTimer++;
+        var threshold = bassEnergy > 0.6 ? 15 : 28;
+        if (fireworkTimer > threshold) {
+            fireworkTimer = 0;
+            var fx = window.innerWidth * (0.15 + Math.random() * 0.7);
+            var fy = window.innerHeight * (0.12 + Math.random() * 0.45);
+            createFirework(fx, fy);
+            // 30% 概率双重绽放
+            if (Math.random() < 0.3) {
+                setTimeout(function() {
+                    createFirework(fx + (Math.random() - 0.5) * 100, fy + (Math.random() - 0.5) * 100);
+                }, 150);
+            }
+        }
+
+        // 粒子
         for (var k = particles.length - 1; k >= 0; k--) {
             particles[k].update();
             particles[k].draw();
             if (particles[k].life <= 0) particles.splice(k, 1);
         }
+
+        // 音频可视化
+        drawVisualizer();
+
         animId = requestAnimationFrame(animate);
     }
 
@@ -524,16 +807,22 @@
         isEaster = false;
         easterTriggered = false;
         document.body.classList.remove('easter-active');
-        if (animId) cancelAnimationFrame(animId);
-        canvas.classList.remove('active');
-        if (overlay) {
-            overlay.classList.remove('active');
-            setTimeout(function() {
-                if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                overlay = null;
-            }, 1000);
-        }
+
+        // 淡出所有效果
+        easterOverlay.classList.remove('active');
+        easterOverlay.classList.add('fading');
+        aurora.classList.remove('active');
         easterText.classList.remove('active');
+        easterText.classList.add('fading');
+
+        setTimeout(function() {
+            if (animId) cancelAnimationFrame(animId);
+            canvas.classList.remove('active');
+            visualizer.classList.remove('active');
+            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            vctx.clearRect(0, 0, window.innerWidth, 120);
+        }, 800);
+
         // 淡入默认 BGM
         fadeIn(bgmDefault, 1000);
         saveState('default', true);
@@ -544,28 +833,61 @@
         bgmEaster.onended = endEaster;
     }
 
+    // 逐字渲染文字
+    function renderEggText() {
+        var title = '天空没有极限';
+        var sub = '我的未来 由我主宰';
+        var lineEl = easterText.querySelector('.egg-line');
+        var subEl = easterText.querySelector('.egg-sub');
+        lineEl.innerHTML = '';
+        for (var i = 0; i < title.length; i++) {
+            var span = document.createElement('span');
+            span.className = 'egg-char';
+            span.textContent = title[i];
+            span.style.animationDelay = (i * 0.12) + 's';
+            lineEl.appendChild(span);
+        }
+        subEl.textContent = sub;
+    }
+
     // 触发彩蛋
     function triggerEaster() {
         if (easterTriggered) return;
         easterTriggered = true;
         isEaster = true;
+        eggStartTime = Date.now();
         document.body.classList.add('easter-active');
 
-        overlay = document.createElement('div');
-        overlay.className = 'easter-overlay';
-        document.body.appendChild(overlay);
-        setTimeout(function() { overlay.classList.add('active'); }, 10);
-
+        // 显示深空遮罩
+        easterOverlay.classList.add('active');
+        // 显示极光
+        setTimeout(function() { aurora.classList.add('active'); }, 300);
+        // 启动 canvas
         canvas.classList.add('active');
+        visualizer.classList.add('active');
         initStars();
         initMeteors();
         particles = [];
         animate();
 
-        easterText.innerHTML =
-            '<div class="egg-line">天空没有极限</div>' +
-            '<div class="egg-sub">我的未来 由我主宰</div>';
-        easterText.classList.add('active');
+        // 汇聚动效：粒子从四周向中心汇聚
+        var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        createConverge(cx, cy);
+        // 汇聚后核爆
+        setTimeout(function() { createFirework(cx, cy, { count: 120, speed: 6 }); }, 800);
+        setTimeout(function() { createFirework(cx - 200, cy - 100, { color: '#48dbfb' }); }, 1200);
+        setTimeout(function() { createFirework(cx + 200, cy - 80, { color: '#ff9ff3' }); }, 1400);
+        setTimeout(function() { createFirework(cx, cy + 50, { color: '#feca57' }); }, 1600);
+
+        // 显示文字
+        renderEggText();
+        setTimeout(function() { easterText.classList.add('active'); }, 600);
+
+        // 初始化音频可视化
+        initAudio();
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
 
         // BGM 切换：淡出默认 → 淡入彩蛋
         fadeOut(bgmDefault, 800, function() {
