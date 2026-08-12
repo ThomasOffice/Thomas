@@ -43,6 +43,13 @@
     <div class="egg-sub"></div>
 </div>
 
+<!-- 彩蛋：退出按钮 -->
+<div id="easter-exit" class="easter-exit" title="退出彩蛋">
+    <svg viewBox="0 0 24 24" width="18" height="18">
+        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+    </svg>
+</div>
+
 <style>
 /* BGM 控制按钮 */
 .bgm-control {
@@ -194,11 +201,12 @@
     transform: translate(-50%, -50%);
     z-index: 1001;
     pointer-events: none;
-    opacity: 0;
+    display: none;
     text-align: center;
     perspective: 800px;
 }
 .easter-text.active {
+    display: block;
     opacity: 1;
     transition: opacity 1s ease-in;
 }
@@ -210,9 +218,9 @@
     transform-style: preserve-3d;
 }
 .egg-line {
-    font-size: clamp(2rem, 7vw, 5rem);
+    font-size: clamp(1.5rem, 4.5vw, 3.5rem);
     font-weight: 900;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.08em;
     background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe, #667eea);
     background-size: 300% 100%;
     -webkit-background-clip: text;
@@ -220,11 +228,16 @@
     -webkit-text-fill-color: transparent;
     animation: egg-gradient 4s linear infinite;
     filter: drop-shadow(0 0 20px rgba(118, 75, 162, 0.6)) drop-shadow(0 0 40px rgba(79, 172, 254, 0.3));
+    line-height: 1.3;
+    max-width: 90vw;
+    word-wrap: break-word;
 }
 .egg-line .egg-char {
     display: inline-block;
     opacity: 0;
     transform: translateY(40px) scale(0.3) rotateY(90deg);
+}
+.egg-line .egg-char.in {
     animation: egg-char-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 .egg-sub {
@@ -232,9 +245,11 @@
     color: rgba(255, 255, 255, 0.85);
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px rgba(102, 126, 234, 0.5);
     margin-top: 1.5rem;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.2em;
     opacity: 0;
-    animation: egg-sub-in 1s ease-out 2s forwards;
+}
+.egg-sub.in {
+    animation: egg-sub-in 1s ease-out forwards;
 }
 @keyframes egg-gradient {
     0% { background-position: 0% 50%; }
@@ -255,6 +270,36 @@
         opacity: 0.85;
         transform: translateY(0);
     }
+}
+
+/* 彩蛋：退出按钮 */
+.easter-exit {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 1002;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: rgba(255, 255, 255, 0.7);
+}
+.easter-exit.active {
+    display: flex;
+}
+.easter-exit:hover {
+    background: rgba(255, 100, 100, 0.3);
+    border-color: rgba(255, 100, 100, 0.5);
+    color: #fff;
+    transform: scale(1.1);
 }
 
 /* 副标题点击提示 */
@@ -290,6 +335,7 @@
     var easterOverlay = document.getElementById('easter-overlay');
     var aurora = document.getElementById('easter-aurora');
     var easterText = document.getElementById('easter-text');
+    var easterExit = document.getElementById('easter-exit');
     var isPlaying = false;
     var isEaster = false;
     var easterTriggered = false;
@@ -808,6 +854,9 @@
         easterTriggered = false;
         document.body.classList.remove('easter-active');
 
+        // 隐藏退出按钮
+        easterExit.classList.remove('active');
+
         // 淡出所有效果
         easterOverlay.classList.remove('active');
         easterOverlay.classList.add('fading');
@@ -819,9 +868,11 @@
             if (animId) cancelAnimationFrame(animId);
             canvas.classList.remove('active');
             visualizer.classList.remove('active');
+            easterText.classList.remove('fading');
+            easterOverlay.classList.remove('fading');
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
             vctx.clearRect(0, 0, window.innerWidth, 120);
-        }, 800);
+        }, 1500);
 
         // 淡入默认 BGM
         fadeIn(bgmDefault, 1000);
@@ -835,19 +886,47 @@
 
     // 逐字渲染文字
     function renderEggText() {
-        var title = '天空没有极限';
-        var sub = '我的未来 由我主宰';
+        var title = 'In this universe, the sky has ceased to be a limit.';
+        var sub = 'My future is mine to command';
         var lineEl = easterText.querySelector('.egg-line');
         var subEl = easterText.querySelector('.egg-sub');
         lineEl.innerHTML = '';
-        for (var i = 0; i < title.length; i++) {
-            var span = document.createElement('span');
-            span.className = 'egg-char';
-            span.textContent = title[i];
-            span.style.animationDelay = (i * 0.12) + 's';
-            lineEl.appendChild(span);
-        }
+        subEl.classList.remove('in');
         subEl.textContent = sub;
+        var words = title.split(' ');
+        var charIndex = 0;
+        for (var w = 0; w < words.length; w++) {
+            var wordSpan = document.createElement('span');
+            wordSpan.style.display = 'inline-block';
+            wordSpan.style.whiteSpace = 'nowrap';
+            for (var c = 0; c < words[w].length; c++) {
+                var span = document.createElement('span');
+                span.className = 'egg-char';
+                span.textContent = words[w][c];
+                span.style.animationDelay = (charIndex * 0.05) + 's';
+                wordSpan.appendChild(span);
+                charIndex++;
+            }
+            lineEl.appendChild(wordSpan);
+            if (w < words.length - 1) {
+                var space = document.createElement('span');
+                space.innerHTML = '&nbsp;';
+                space.style.display = 'inline-block';
+                lineEl.appendChild(space);
+            }
+            charIndex++;
+        }
+        // 触发逐字动画
+        var chars = lineEl.querySelectorAll('.egg-char');
+        setTimeout(function() {
+            for (var i = 0; i < chars.length; i++) {
+                chars[i].classList.add('in');
+            }
+        }, 50);
+        // 触发副标题动画
+        setTimeout(function() {
+            subEl.classList.add('in');
+        }, charIndex * 50 + 400);
     }
 
     // 触发彩蛋
@@ -862,6 +941,8 @@
         easterOverlay.classList.add('active');
         // 显示极光
         setTimeout(function() { aurora.classList.add('active'); }, 300);
+        // 显示退出按钮
+        easterExit.classList.add('active');
         // 启动 canvas
         canvas.classList.add('active');
         visualizer.classList.add('active');
@@ -898,6 +979,17 @@
 
         bindEasterEnded();
     }
+
+    // 退出按钮事件
+    easterExit.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!easterTriggered) return;
+        // 停止彩蛋 BGM
+        bgmEaster.pause();
+        bgmEaster.currentTime = 0;
+        // 触发结束流程
+        endEaster();
+    });
 
     // 绑定副标题点击
     function bindSubtitleClick() {
