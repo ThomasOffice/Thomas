@@ -9,13 +9,10 @@
     <source src="{{ $musicDir }}tiankong.mp3" type="audio/mpeg">
 </audio>
 
-<!-- BGM 控制按钮 -->
-<div id="bgm-control" class="bgm-control" title="播放/暂停 BGM">
-    <svg id="bgm-icon-play" class="bgm-icon" viewBox="0 0 24 24" width="20" height="20">
-        <path fill="currentColor" d="M8 5v14l11-7z"/>
-    </svg>
-    <svg id="bgm-icon-pause" class="bgm-icon" viewBox="0 0 24 24" width="20" height="20" style="display:none">
-        <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+<!-- BGM 控制按钮（只播放，不暂停） -->
+<div id="bgm-control" class="bgm-control" title="播放 BGM">
+    <svg class="bgm-icon" viewBox="0 0 24 24" width="20" height="20">
+        <path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
     </svg>
 </div>
 
@@ -51,6 +48,7 @@
 }
 .bgm-control.playing {
     animation: bgm-pulse 2s ease-in-out infinite;
+    color: #6495ed;
 }
 @keyframes bgm-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(100, 149, 237, 0.4); }
@@ -169,59 +167,121 @@
     var bgmDefault = document.getElementById('bgm-default');
     var bgmEaster = document.getElementById('bgm-easter');
     var bgmControl = document.getElementById('bgm-control');
-    var iconPlay = document.getElementById('bgm-icon-play');
-    var iconPause = document.getElementById('bgm-icon-pause');
     var canvas = document.getElementById('easter-canvas');
     var easterText = document.getElementById('easter-text');
     var overlay = null;
     var isPlaying = false;
     var isEaster = false;
     var easterTriggered = false;
+    var STATE_KEY = 'thomas_bgm_state';
 
-    // BGM 播放/暂停控制
-    function playBgm() {
+    // ========== 跨页面状态持久化 ==========
+    function saveState(source, playing) {
+        var audio = source === 'easter' ? bgmEaster : bgmDefault;
+        try {
+            sessionStorage.setItem(STATE_KEY, JSON.stringify({
+                source: source,
+                playing: playing,
+                time: audio.currentTime || 0
+            }));
+        } catch(e) {}
+    }
+
+    function loadState() {
+        try {
+            var s = sessionStorage.getItem(STATE_KEY);
+            return s ? JSON.parse(s) : null;
+        } catch(e) { return null; }
+    }
+
+    function clearState() {
+        try { sessionStorage.removeItem(STATE_KEY); } catch(e) {}
+    }
+
+    // ========== 播放控制 ==========
+    function setPlayingUI() {
+        isPlaying = true;
+        bgmControl.classList.add('playing');
+        bgmControl.title = 'BGM 播放中';
+    }
+
+    function playDefault(startTime) {
+        if (startTime && startTime > 0) {
+            try { bgmDefault.currentTime = startTime; } catch(e) {}
+        }
         bgmDefault.play().then(function() {
-            isPlaying = true;
-            bgmControl.classList.add('playing');
-            iconPlay.style.display = 'none';
-            iconPause.style.display = 'block';
+            setPlayingUI();
+            isEaster = false;
+            saveState('default', true);
         }).catch(function(e) {
-            console.log('BGM 自动播放被阻止，等待用户交互');
+            console.log('BGM 播放等待用户交互');
         });
     }
 
-    function pauseBgm() {
-        bgmDefault.pause();
-        bgmEaster.pause();
-        isPlaying = false;
-        bgmControl.classList.remove('playing');
-        iconPlay.style.display = 'block';
-        iconPause.style.display = 'none';
+    function playEaster(startTime) {
+        if (startTime && startTime > 0) {
+            try { bgmEaster.currentTime = startTime; } catch(e) {}
+        }
+        bgmEaster.play().then(function() {
+            setPlayingUI();
+            isEaster = true;
+            saveState('easter', true);
+        }).catch(function(e) {
+            console.log('彩蛋 BGM 播放等待用户交互');
+        });
     }
 
-    bgmControl.addEventListener('click', function() {
-        if (isEaster) return;
-        if (isPlaying) {
-            pauseBgm();
+    // 控制按钮：只播放，不暂停
+    bgmControl.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (isPlaying) return;  // 已在播放则不做任何事
+        var state = loadState();
+        if (state && state.source === 'easter') {
+            playEaster(state.time);
+        } else if (state && state.source === 'default') {
+            playDefault(state.time);
         } else {
-            playBgm();
+            playDefault(0);
         }
     });
 
-    // 浏览器自动播放策略：首次交互后尝试播放
-    function tryAutoPlay() {
-        if (!isPlaying && !isEaster) {
-            playBgm();
-        }
-        document.removeEventListener('click', tryAutoPlay);
-        document.removeEventListener('keydown', tryAutoPlay);
-        document.removeEventListener('touchstart', tryAutoPlay);
-    }
-    document.addEventListener('click', tryAutoPlay);
-    document.addEventListener('keydown', tryAutoPlay);
-    document.addEventListener('touchstart', tryAutoPlay);
+    // 定期保存播放进度（用于跨页面恢复）
+    bgmDefault.addEventListener('timeupdate', function() {
+        if (isPlaying && !isEaster) saveState('default', true);
+    });
+    bgmEaster.addEventListener('timeupdate', function() {
+        if (isPlaying && isEaster) saveState('easter', true);
+    });
 
-    // 淡入淡出控制
+    // ========== 自动播放与跨页面恢复 ==========
+    // 浏览器自动播放策略：首次交互后尝试恢复播放
+    function tryRestore() {
+        if (isPlaying) return;
+        var state = loadState();
+        if (state && state.source === 'easter') {
+            playEaster(state.time);
+            bindEasterEnded();
+        } else if (state && state.source === 'default') {
+            playDefault(state.time);
+        } else {
+            playDefault(0);
+        }
+        document.removeEventListener('click', tryRestore);
+        document.removeEventListener('keydown', tryRestore);
+        document.removeEventListener('touchstart', tryRestore);
+    }
+    document.addEventListener('click', tryRestore);
+    document.addEventListener('keydown', tryRestore);
+    document.addEventListener('touchstart', tryRestore);
+
+    // 页面隐藏前保存状态
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isPlaying) {
+            saveState(isEaster ? 'easter' : 'default', true);
+        }
+    });
+
+    // ========== 淡入淡出控制 ==========
     function fadeIn(audio, duration, callback) {
         audio.volume = 0;
         audio.play().then(function() {
@@ -268,7 +328,6 @@
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // 粒子类
     function Particle(x, y, color, angle, speed) {
         this.x = x;
         this.y = y;
@@ -299,7 +358,6 @@
         ctx.restore();
     };
 
-    // 星星类
     function Star() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
@@ -325,7 +383,6 @@
         ctx.restore();
     };
 
-    // 流星类
     function Meteor() {
         this.x = Math.random() * canvas.width;
         this.y = -20;
@@ -360,7 +417,6 @@
         ctx.restore();
     };
 
-    // 创建烟花
     function createFirework(x, y) {
         var colors = [
             '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1',
@@ -376,15 +432,11 @@
         }
     }
 
-    // 初始化星星
     function initStars() {
         stars = [];
-        for (var i = 0; i < 120; i++) {
-            stars.push(new Star());
-        }
+        for (var i = 0; i < 120; i++) stars.push(new Star());
     }
 
-    // 初始化流星
     function initMeteors() {
         meteors = [];
         for (var i = 0; i < 6; i++) {
@@ -394,42 +446,47 @@
         }
     }
 
-    // 动画循环
     var fireworkTimer = 0;
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 绘制星星
-        for (var i = 0; i < stars.length; i++) {
-            stars[i].update();
-            stars[i].draw();
-        }
-
-        // 绘制流星
-        for (var j = 0; j < meteors.length; j++) {
-            meteors[j].update();
-            meteors[j].draw();
-        }
-
-        // 定时发射烟花
+        for (var i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(); }
+        for (var j = 0; j < meteors.length; j++) { meteors[j].update(); meteors[j].draw(); }
         fireworkTimer++;
         if (fireworkTimer > 25) {
             fireworkTimer = 0;
-            var fx = canvas.width * (0.2 + Math.random() * 0.6);
-            var fy = canvas.height * (0.15 + Math.random() * 0.4);
-            createFirework(fx, fy);
+            createFirework(canvas.width * (0.2 + Math.random() * 0.6), canvas.height * (0.15 + Math.random() * 0.4));
         }
-
-        // 绘制粒子
         for (var k = particles.length - 1; k >= 0; k--) {
             particles[k].update();
             particles[k].draw();
-            if (particles[k].life <= 0) {
-                particles.splice(k, 1);
-            }
+            if (particles[k].life <= 0) particles.splice(k, 1);
         }
-
         animId = requestAnimationFrame(animate);
+    }
+
+    // 彩蛋结束：回到默认 BGM
+    function endEaster() {
+        isEaster = false;
+        easterTriggered = false;
+        document.body.classList.remove('easter-active');
+        if (animId) cancelAnimationFrame(animId);
+        canvas.classList.remove('active');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(function() {
+                if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                overlay = null;
+            }, 1000);
+        }
+        easterText.classList.remove('active');
+        // 淡入默认 BGM
+        fadeIn(bgmDefault, 1000);
+        saveState('default', true);
+    }
+
+    // 绑定彩蛋 BGM 播完事件（跨页面恢复时也需要绑定）
+    function bindEasterEnded() {
+        bgmEaster.onended = endEaster;
     }
 
     // 触发彩蛋
@@ -439,20 +496,17 @@
         isEaster = true;
         document.body.classList.add('easter-active');
 
-        // 创建遮罩
         overlay = document.createElement('div');
         overlay.className = 'easter-overlay';
         document.body.appendChild(overlay);
         setTimeout(function() { overlay.classList.add('active'); }, 10);
 
-        // 启动 canvas 动画
         canvas.classList.add('active');
         initStars();
         initMeteors();
         particles = [];
         animate();
 
-        // 显示彩蛋文字
         easterText.innerHTML =
             '<div class="egg-line">天空没有极限</div>' +
             '<div class="egg-sub">我的未来 由我主宰</div>';
@@ -462,57 +516,33 @@
         fadeOut(bgmDefault, 800, function() {
             bgmEaster.currentTime = 0;
             fadeIn(bgmEaster, 1000);
+            saveState('easter', true);
         });
 
-        // 彩蛋 BGM 播完后回到默认
-        bgmEaster.onended = function() {
-            isEaster = false;
-            easterTriggered = false;
-            document.body.classList.remove('easter-active');
-
-            // 停止动画
-            if (animId) cancelAnimationFrame(animId);
-            canvas.classList.remove('active');
-
-            // 移除遮罩
-            if (overlay) {
-                overlay.classList.remove('active');
-                setTimeout(function() {
-                    if (overlay && overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                    overlay = null;
-                }, 1000);
-            }
-
-            // 移除文字
-            easterText.classList.remove('active');
-
-            // 淡入默认 BGM
-            fadeIn(bgmDefault, 1000);
-        };
+        bindEasterEnded();
     }
 
-    // 绑定副标题点击（typeit 动画完成后文本在 .typeit div 中）
+    // 绑定副标题点击
     function bindSubtitleClick() {
         var typeitDiv = document.querySelector('.home-subtitle .typeit');
         if (typeitDiv) {
             typeitDiv.addEventListener('click', triggerEaster);
             typeitDiv.title = '点击试试';
         } else {
-            // typeit 尚未渲染，稍后重试
             setTimeout(bindSubtitleClick, 500);
         }
     }
 
-    // 等待页面加载完成
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(bindSubtitleClick, 1000);
-        });
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(bindSubtitleClick, 1000); });
     } else {
         setTimeout(bindSubtitleClick, 1000);
     }
+
+    // 页面卸载前保存最新进度
+    window.addEventListener('beforeunload', function() {
+        if (isPlaying) saveState(isEaster ? 'easter' : 'default', true);
+    });
 
 })();
 </script>
