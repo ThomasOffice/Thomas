@@ -13,3 +13,9 @@
 .special .single-subtitle {
   text-align: left;
 }
+
+// 修复头像居中（inline-block + margin auto 不生效，改用 block）
+.home .home-profile .home-avatar img {
+  display: block;
+  margin: 0 auto;
+}
